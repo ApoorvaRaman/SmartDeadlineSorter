@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Deadline Sorter — Priority Canvas</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:wght@700;900&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #E63946;
+  --blue: #457B9D;
+  --mint: #A8DADC;
+  --yellow: #F4A261;
+  --green: #2A9D8F;
+  --bg: #0D0F14;
+  --bg2: #13161D;
+  --bg3: #1A1E28;
+  --surface: #1E2330;
+  --surface2: #252A3A;
+  --border: rgba(255,255,255,0.07);
+  --text: #F0EDE8;
+  --muted: #6B7280;
+  --dim: #9CA3AF;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Manrope', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: default;
+}
+
+/* ─── TOP NAV ─── */
+.topnav {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 58px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+  gap: 0;
+  position: relative;
+  z-index: 50;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 40px;
+}
+
+.brand-icon {
+  width: 34px; height: 34px;
+  border: 1.5px solid var(--mint);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.brand-icon svg { width: 16px; height: 16px; stroke: var(--mint); }
+
+.brand-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text);
+}
+
+.nav-tabs {
+  display: flex;
+  height: 100%;
+  gap: 2px;
+}
+
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+
+.nav-tab:hover { color: var(--dim); }
+.nav-tab.active { color: var(--text); border-bottom-color: var(--mint); }
+.nav-tab svg { width: 14px; height: 14px; }
+
+.nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collab-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(42,157,143,0.15);
+  border: 1px solid rgba(42,157,143,0.3);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.collab-pill:hover { background: rgba(42,157,143,0.25); }
+.collab-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+
+.icon-btn {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--dim);
+}
+.icon-btn:hover { background: var(--surface2); color: var(--text); }
+.icon-btn svg { width: 15px; height: 15px; }
+
+/* ─── LAYOUT ─── */
+.app {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  width: 260px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+.sidebar-section {
+  padding: 20px 20px 0;
+}
+
+.sidebar-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* POMODORO */
+.pomodoro-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.pomodoro-task-name {
+  font-size: 12px;
+  color: var(--dim);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.pomodoro-task-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--red);
+  margin-bottom: 14px;
+  line-height: 1.3;
+}
+
+.timer-ring-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.timer-ring-wrap svg { transform: rotate(-90deg); }
+
+.timer-text {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.timer-mode {
+  position: absolute;
+  bottom: 6px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.timer-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timer-btn.play { background: var(--red); color: white; }
+.timer-btn.play:hover { background: #c9303c; }
+.timer-btn.reset { background: var(--surface2); color: var(--dim); }
+.timer-btn.reset:hover { color: var(--text); }
+
+.pomodoro-sessions {
+  display: flex;
+  gap: 5px;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.session-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--surface2);
+  transition: background 0.3s;
+}
+.session-dot.done { background: var(--red); }
+
+/* HEATMAP */
+.heatmap-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.cal-days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.cal-day-h {
+  font-size: 9px;
+  text-align: center;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+}
+
+.cal-cell:hover { background: var(--surface2); color: var(--text); }
+.cal-cell.empty { pointer-events: none; }
+.cal-cell.today { background: var(--blue); color: white; font-weight: 700; }
+.cal-cell.h1 { background: rgba(168,218,220,0.2); color: var(--mint); }
+.cal-cell.h2 { background: rgba(168,218,220,0.45); color: white; }
+.cal-cell.h3 { background: var(--red); color: white; font-weight: 700; }
+
+/* STATS */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.stat-value {
+  font-family: 'Space Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ─── MAIN ─── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.main-header {
+  padding: 24px 32px 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.main-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #F0EDE8 40%, #A8DADC);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.main-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+}
+
+.btn-panic {
+  background: rgba(230,57,70,0.15);
+  color: var(--red);
+  border: 1px solid rgba(230,57,70,0.3);
+}
+.btn-panic:hover { background: rgba(230,57,70,0.25); }
+
+.btn-scan {
+  background: rgba(69,123,157,0.15);
+  color: var(--blue);
+  border: 1px solid rgba(69,123,157,0.3);
+}
+.btn-scan:hover { background: rgba(69,123,157,0.25); }
+
+.btn-add {
+  background: var(--mint);
+  color: #0D1A1B;
+  font-weight: 700;
+}
+.btn-add:hover { background: #8fcfd1; transform: translateY(-1px); }
+
+.btn svg { width: 13px; height: 13px; }
+
+/* TASK TABLE */
+.table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 32px;
+}
+.table-wrap::-webkit-scrollbar { width: 5px; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+.col-headers {
+  display: grid;
+  grid-template-columns: 30px 1fr 190px 90px 130px 50px;
+  align-items: center;
+  padding: 0 16px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+.sortable-col {
+  display: flex; align-items: center; gap: 4px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.sortable-col:hover { color: var(--dim); }
+.sortable-col svg { width: 10px; height: 10px; }
+
+/* TASK ROW */
+.task-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 190px 90px 130px 50px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: grab;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  animation: rowIn 0.3s ease both;
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.task-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+}
+
+.task-row.urgent::before { background: var(--red); }
+.task-row.soon::before { background: var(--blue); }
+.task-row.later::before { background: var(--yellow); }
+.task-row.far::before { background: var(--green); }
+
+.task-row:hover { background: var(--surface2); border-color: rgba(255,255,255,0.12); transform: translateX(2px); }
+.task-row.dragging { opacity: 0.4; cursor: grabbing; }
+.task-row.drag-over { border-color: var(--mint); box-shadow: 0 0 0 1px var(--mint); }
+
+.drag-handle-col {
+  color: var(--muted);
+  cursor: grab;
+  display: flex; align-items: center; justify-content: center;
+}
+.drag-handle-col svg { width: 14px; height: 14px; }
+
+.task-info { min-width: 0; }
+
+.task-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.task-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 4px;
+}
+
+.task-meta-tag {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.work-bar {
+  height: 3px;
+  background: var(--surface2);
+  border-radius: 2px;
+  width: 70px;
+  overflow: hidden;
+  margin-top: 5px;
+}
+.work-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+/* DEADLINE BADGE */
+.deadline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+}
+
+.deadline-badge.urgent { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.25); }
+.deadline-badge.soon { background: rgba(69,123,157,0.15); color: #6baed6; border: 1px solid rgba(69,123,157,0.25); }
+.deadline-badge.later { background: rgba(244,162,97,0.15); color: var(--yellow); border: 1px solid rgba(244,162,97,0.25); }
+.deadline-badge.far { background: rgba(42,157,143,0.15); color: var(--green); border: 1px solid rgba(42,157,143,0.25); }
+
+.deadline-badge svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+/* EST TIME */
+.est-time-col {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dim);
+}
+
+.est-time-label { font-size: 10px; color: var(--muted); font-family: 'Manrope', sans-serif; }
+
+/* SUBJECT */
+.subject-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* subject badge colors are now applied inline via JS */
+
+/* Subject input with tag/autocomplete UI */
+.subject-input-wrap {
+  position: relative;
+}
+
+.subject-input-wrap input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.subject-input-wrap input:focus { border-color: var(--mint); }
+
+.subject-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--bg2);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  max-height: 180px;
+  overflow-y: auto;
+}
+.subject-dropdown.open { display: block; }
+.subject-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: var(--dim);
+}
+.subject-dropdown-item:hover { background: var(--surface2); color: var(--text); }
+.subject-dropdown-item .dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.subject-dropdown-item.new-tag { color: var(--mint); font-weight: 600; font-style: italic; }
+
+.existing-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.existing-subject-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  border: 1px solid transparent;
+}
+.existing-subject-chip:hover { opacity: 0.8; }
+.existing-subject-chip .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ACTIONS */
+.row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+.row-btn {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--muted);
+}
+.row-btn:hover { background: var(--surface2); color: var(--text); }
+.row-btn.focus:hover { background: rgba(230,57,70,0.15); color: var(--red); border-color: rgba(230,57,70,0.3); }
+.row-btn.del:hover { background: rgba(255,80,80,0.1); color: #ff6b6b; border-color: rgba(255,80,80,0.2); }
+.row-btn svg { width: 13px; height: 13px; }
+
+/* EMPTY */
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--muted);
+}
+.empty-state svg { width: 56px; height: 56px; margin-bottom: 14px; opacity: 0.2; stroke: var(--mint); }
+.empty-state h3 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--dim); margin-bottom: 6px; }
+.empty-state p { font-size: 13px; }
+
+/* ─── MODAL BASE ─── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg2);
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 32px;
+  width: 460px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  animation: modalIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.93) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 24px;
+  color: var(--text);
+}
+
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.2s;
+  resize: none;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--mint); }
+.form-group select option { background: var(--bg2); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+.btn-modal-cancel {
+  background: var(--surface);
+  color: var(--dim);
+  border: 1px solid var(--border);
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-modal-cancel:hover { background: var(--surface2); color: var(--text); }
+
+/* SCAN MODAL */
+.scan-area {
+  border: 2px dashed rgba(69,123,157,0.4);
+  border-radius: 14px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+  background: rgba(69,123,157,0.05);
+}
+.scan-area:hover { border-color: var(--blue); background: rgba(69,123,157,0.1); }
+.scan-area svg { width: 36px; height: 36px; stroke: var(--blue); margin-bottom: 10px; }
+.scan-area p { font-size: 13px; color: var(--dim); }
+.scan-area p strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 15px; }
+
+#pdfInput { display: none; }
+
+.scan-results {
+  display: none;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  max-height: 200px;
+  overflow-y: auto;
+}
+.scan-results.show { display: block; }
+
+.scan-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  gap: 12px;
+}
+.scan-result-item:last-child { border-bottom: none; }
+.scan-result-item input[type="checkbox"] { accent-color: var(--mint); width: 14px; height: 14px; flex-shrink: 0; }
+.scan-result-text { flex: 1; color: var(--dim); }
+.scan-result-date { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--mint); flex-shrink: 0; }
+
+.scan-loading {
+  display: none;
+  text-align: center;
+  padding: 20px;
+  color: var(--dim);
+  font-size: 13px;
+}
+.scan-loading.show { display: block; }
+
+.loading-dots span {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  margin: 0 2px;
+  animation: dot 1.4s infinite ease-in-out;
+}
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+/* COLLAB MODAL */
+.collab-users {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.collab-user {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.collab-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.collab-user-name { font-size: 13px; font-weight: 600; }
+.collab-user-status { font-size: 11px; color: var(--muted); }
+.collab-online { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+}
+.share-link-row input {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--dim);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  outline: none;
+}
+.btn-copy {
+  padding: 9px 14px;
+  background: var(--surface2);
+  color: var(--dim);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-copy:hover { color: var(--text); }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 28px; right: 28px;
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid rgba(168,218,220,0.25);
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 300;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast svg { width: 15px; height: 15px; stroke: var(--mint); flex-shrink: 0; }
+
+/* URGENCY LEGEND */
+.legend {
+  display: flex;
+  gap: 16px;
+  padding: 14px 32px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--bg2);
+}
+.legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.legend-dot {
+  width: 8px; height: 8px; border-radius: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="7" x2="20" y2="7"/>
+        <line x1="4" y1="12" x2="20" y2="12"/>
+        <line x1="4" y1="17" x2="13" y2="17"/>
+      </svg>
+    </div>
+    <span class="brand-name">Smart Deadline Sorter</span>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      All Tasks
+    </div>
+    <div class="nav-tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendar
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <div class="collab-pill" onclick="openCollabModal()">
+      <div class="collab-dot"></div>
+      3 collaborating
+    </div>
+    <div class="icon-btn" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 19.07a10 10 0 010-14.14"/></svg>
+    </div>
+    <div class="icon-btn" title="Profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+    </div>
+  </div>
+</nav>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#E63946"></div>Urgent (&lt;24h)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#457B9D"></div>Soon (1–2 days)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#F4A261"></div>Later (2–4 days)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2A9D8F"></div>Far (&gt;4 days)</div>
+  <div style="margin-left:auto;font-size:11px;color:var(--muted);font-weight:600;">↕ Drag rows to reprioritize</div>
+</div>
+
+<!-- APP BODY -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <!-- POMODORO TIMER -->
+    <div class="sidebar-section" style="padding-top:20px">
+      <div class="sidebar-label">🍅 Focus Timer</div>
+      <div class="pomodoro-card">
+        <div class="pomodoro-task-name">Now focusing on:</div>
+        <div class="pomodoro-task-title" id="pomodoroTaskName">Histo Final Report</div>
+
+        <div class="timer-ring-wrap">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+            <circle id="timerRing" cx="55" cy="55" r="46" fill="none" stroke="#E63946" stroke-width="8"
+              stroke-dasharray="289" stroke-dashoffset="0" stroke-linecap="round" transition="stroke-dashoffset 1s linear"/>
+          </svg>
+          <div class="timer-text" id="timerDisplay">25:00</div>
+          <div class="timer-mode" id="timerMode">FOCUS</div>
+        </div>
+
+        <div class="timer-controls">
+          <button class="timer-btn play" id="timerPlayBtn" onclick="toggleTimer()">▶ Start</button>
+          <button class="timer-btn reset" onclick="resetTimer()">↺ Reset</button>
+        </div>
+
+        <div class="pomodoro-sessions" id="sessionDots">
+          <div class="session-dot"></div>
+          <div class="session-dot"></div>
+          <div class="session-dot"></div>
+          <div class="session-dot"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-label" style="margin-top:8px">📅 Deadline Heatmap</div>
+      <div class="heatmap-card">
+        <div class="cal-days-header">
+          <div class="cal-day-h">Su</div><div class="cal-day-h">Mo</div>
+          <div class="cal-day-h">Tu</div><div class="cal-day-h">We</div>
+          <div class="cal-day-h">Th</div><div class="cal-day-h">Fr</div>
+          <div class="cal-day-h">Sa</div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+
+      <div class="sidebar-label" style="margin-top:8px">📊 Stats</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statUrgent">1</div>
+          <div class="stat-label">Urgent</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statTotal">4</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statHours">14h</div>
+          <div class="stat-label">Workload</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statDone">0</div>
+          <div class="stat-label">Done</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="main-header">
+      <div>
+        <div class="main-title">Today's Priority Canvas</div>
+        <div class="main-subtitle">Manage Deadlines — <span id="dateStr"></span></div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-panic" onclick="panicSort()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          Panic: Reset Order
+        </button>
+        <button class="btn btn-scan" onclick="openScanModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+          Scan Syllabus
+        </button>
+        <button class="btn btn-add" onclick="openAddModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Deadline
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="col-headers">
+        <div></div>
+        <div>Task</div>
+        <div class="sortable-col" onclick="panicSort()">
+          Deadline/Urgency
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+        </div>
+        <div>Est. Time</div>
+        <div>Subject</div>
+        <div>Actions</div>
+      </div>
+      <div id="taskList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ADD MODAL ═══════════════ -->
+<div class="modal-overlay" id="addModalOverlay" onclick="closeBg('addModalOverlay')">
+  <div class="modal">
+    <div class="modal-title">Add New Deadline</div>
+    <div class="form-group">
+      <label>Task Name</label>
+      <input type="text" id="taskName" placeholder="e.g. Chemistry Lab Report">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Due Date</label>
+        <input type="date" id="taskDate">
+      </div>
+      <div class="form-group">
+        <label>Due Time</label>
+        <input type="time" id="taskTime" value="23:59">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Est. Hours</label>
+        <input type="number" id="taskHours" min="0.5" max="20" step="0.5" placeholder="2">
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <div class="subject-input-wrap">
+          <input type="text" id="taskSubject" placeholder="e.g. Chemistry, Law, Economics…" autocomplete="off"
+            oninput="filterSubjectDropdown()"
+            onfocus="openSubjectDropdown()"
+            onkeydown="subjectKeydown(event)">
+          <div class="subject-dropdown" id="subjectDropdown"></div>
+        </div>
+        <div class="existing-subjects" id="existingSubjectChips"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes (optional)</label>
+      <textarea id="taskNotes" rows="2" placeholder="e.g. Chapter 5–7 only, submit on Moodle"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('addModalOverlay')">Cancel</button>
+      <button class="btn btn-add" onclick="addTask()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCAN MODAL ═══════════════ -->
+<div class="modal-overlay" id="scanModalOverlay" onclick="closeBg('scanModalOverlay')">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">🤖 Syllabus Scanner</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Upload your syllabus PDF and AI will extract all deadlines automatically.</p>
+
+    <div class="scan-area" onclick="document.getElementById('pdfInput').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <polyline points="12 18 12 12"/><polyline points="9 15 12 12 15 15"/>
+      </svg>
+      <p><strong id="scanAreaText">Click to upload your PDF syllabus</strong>or drag & drop here</p>
+    </div>
+    <input type="file" id="pdfInput" accept=".pdf,.txt" onchange="handleSyllabusUpload(event)">
+
+    <div class="scan-loading" id="scanLoading">
+      <div class="loading-dots"><span></span><span></span><span></span></div>
+      <p style="margin-top:8px">Extracting deadlines with AI...</p>
+    </div>
+
+    <div class="scan-results" id="scanResults">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Found Deadlines — select to import</div>
+      <div id="scanResultsList"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeModal('scanModalOverlay')">Cancel</button>
+      <button class="btn btn-scan" id="importBtn" style="display:none" onclick="importScannedTasks()">Import Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ COLLAB MODAL ═══════════════ -->
+<div class="modal-overlay" id="collabModalOverlay" onclick="closeBg('collabModalOverlay')">
+  <div class="modal">
+    <div class="modal-title">👥 Collaborative Mode</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Share this deadline board with classmates for group project tracking.</p>
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Active Members</div>
+    <div class="collab-users">
+      <div class="collab-user">
+        <div class="collab-avatar" style="background:rgba(230,57,70,0.2);color:#ff7b86">AK</div>
+        <div>
+          <div class="collab-user-name">Arjun K. (You)</div>
+          <div class="collab-user-status">Admin · Last active now</div>
+        </div>
+        <div class="collab-online"></div>
+      </div>
+      <div class="collab-user">
+        <div class="collab-avatar" style="background:rgba(69,123,157,0.2);color:#7ab5d4">SM</div>
+        <div>
+          <div class="collab-user-name">Sara M.</div>
+          <div class="collab-user-status">Member · Active 2m ago</div>
+        </div>
+        <div class="collab-online"></div>
+      </div>
+      <div class="collab-user">
+        <div class="collab-avatar" style="background:rgba(168,218,220,0.2);color:var(--mint)">RP</div>
+        <div>
+          <div class="collab-user-name">Riya P.</div>
+          <div class="collab-user-status">Member · Active 15m ago</div>
+        </div>
+        <div class="collab-online" style="background:#F4A261"></div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 10px">Invite via Link</div>
+    <div class="share-link-row">
+      <input type="text" value="sds.app/board/x7k2m9p4q" readonly id="shareLinkInput">
+      <button class="btn-copy" onclick="copyLink()">Copy</button>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn-modal-cancel" onclick="closeModal('collabModalOverlay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// ── DATA ──
+const now = new Date();
+
+let tasks = [
+  { id:1, name:'Histo Final Report', subject:'history', due: new Date(now.getTime() + 11.3*3600000), hours:4, notes:'' },
+  { id:2, name:'Physics Problem Set', subject:'physics', due: new Date(now.getTime() + 28*3600000), hours:3, notes:'' },
+  { id:3, name:'Bio Assignment', subject:'biology', due: new Date(now.getTime() + 82*3600000), hours:2, notes:'' },
+  { id:4, name:'Literature Essay', subject:'literature',due: new Date(now.getTime() + 146*3600000), hours:5, notes:'' },
+];
+
+let nextId = 10;
+let doneTasks = 0;
+let dragSrc = null;
+
+// ── DATE STR ──
+const opts = { weekday:'long', month:'long', day:'numeric', year:'numeric' };
+document.getElementById('dateStr').textContent = now.toLocaleDateString('en-US', opts);
+
+// ── URGENCY ──
+function urgency(due) {
+  const h = (due - now) / 3600000;
+  if (h < 0) return 'urgent';
+  if (h < 24) return 'urgent';
+  if (h < 48) return 'soon';
+  if (h < 96) return 'later';
+  return 'far';
+}
+
+function deadlineText(due) {
+  const ms = due - now;
+  if (ms < 0) return '⚠ OVERDUE';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h < 24) return `URGENT: ${h}h ${m}m left`;
+  const d = Math.floor(h / 24);
+  return `Due: ${d}d ${h%24}h`;
+}
+
+// ── RENDER ──
+function render() {
+  const list = document.getElementById('taskList');
+
+  if (!tasks.length) {
+    list.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+      <h3>No deadlines yet</h3>
+      <p>Add a deadline or scan your syllabus to get started.</p>
+    </div>`;
+    updateStats();
+    return;
+  }
+
+  list.innerHTML = tasks.map((t,i) => {
+    const urg = urgency(t.due);
+    const dt = deadlineText(t.due);
+    const icon = urg === 'urgent'
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+
+    const bar = Math.min(100, (t.hours / 10) * 100);
+    const barColor = urg === 'urgent' ? '#E63946' : urg === 'soon' ? '#457B9D' : urg === 'later' ? '#F4A261' : '#2A9D8F';
+
+    return `<div class="task-row ${urg}" draggable="true"
+      ondragstart="dragStart(event,${i})"
+      ondragover="dragOver(event)"
+      ondragleave="dragLeave(event)"
+      ondrop="drop(event,${i})"
+      ondragend="dragEnd(event)"
+      style="animation-delay:${i*0.05}s">
+      <div class="drag-handle-col">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
+      </div>
+      <div class="task-info">
+        <div class="task-name">${t.name}</div>
+        <div class="task-meta">
+          <span class="task-meta-tag">${t.hours}h est.</span>
+          ${t.notes ? `<span class="task-meta-tag">· ${t.notes.substring(0,30)}${t.notes.length>30?'…':''}</span>` : ''}
+        </div>
+        <div class="work-bar"><div class="work-fill" style="width:${bar}%;background:${barColor}"></div></div>
+      </div>
+      <div><span class="deadline-badge ${urg}">${icon}${dt}</span></div>
+      <div class="est-time-col">
+        ${t.hours}h
+        <div class="est-time-label">estimated</div>
+      </div>
+      <div><span class="subject-badge" style="${subjectBadgeStyle(t.subject)}">${cap(t.subject)}</span></div>
+      <div class="row-actions">
+        <button class="row-btn focus" title="Focus on this task" onclick="focusTask(${t.id})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12h2M20 12h2M12 2v2M12 20v2"/></svg>
+        </button>
+        <button class="row-btn del" title="Remove" onclick="removeTask(${t.id})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateStats();
+  renderCalendar();
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ── STATS ──
+function updateStats() {
+  document.getElementById('statTotal').textContent = tasks.length;
+  document.getElementById('statUrgent').textContent = tasks.filter(t => urgency(t.due) === 'urgent').length;
+  const totalH = tasks.reduce((a,t) => a + t.hours, 0);
+  document.getElementById('statHours').textContent = totalH + 'h';
+  document.getElementById('statDone').textContent = doneTasks;
+}
+
+// ── DRAG ──
+function dragStart(e,i) { dragSrc=i; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function drop(e,i) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrc===null||dragSrc===i) return;
+  const [m] = tasks.splice(dragSrc,1);
+  tasks.splice(i,0,m);
+  dragSrc=null;
+  render();
+  toast('Task reprioritized');
+}
+function dragEnd(e) { e.currentTarget.classList.remove('dragging'); dragSrc=null; }
+
+// ── ACTIONS ──
+function panicSort() { tasks.sort((a,b)=>a.due-b.due); render(); toast('⚡ Reset to chronological order'); }
+
+function focusTask(id) {
+  const t = tasks.find(x=>x.id===id);
+  if (!t) return;
+  document.getElementById('pomodoroTaskName').textContent = t.name;
+  resetTimer();
+  toast('🍅 Focusing on: ' + t.name);
+}
+
+function removeTask(id) {
+  tasks = tasks.filter(t=>t.id!==id);
+  doneTasks++;
+  render();
+  toast('Task marked complete ✓');
+}
+
+// ── ADD TASK ──
+function addTask() {
+  const name = document.getElementById('taskName').value.trim();
+  const date = document.getElementById('taskDate').value;
+  const time = document.getElementById('taskTime').value;
+  const hours = parseFloat(document.getElementById('taskHours').value)||2;
+  const subjectRaw = document.getElementById('taskSubject').value.trim();
+  const subject = subjectRaw ? subjectRaw.toLowerCase() : 'other';
+  const notes = document.getElementById('taskNotes').value.trim();
+
+  if (!name||!date) { toast('⚠ Fill in name & date'); return; }
+  // register subject color if new
+  getSubjectColor(subject);
+  const due = new Date(`${date}T${time}`);
+  tasks.push({ id:nextId++, name, subject, due, hours, notes });
+  tasks.sort((a,b)=>a.due-b.due);
+  closeModal('addModalOverlay');
+  render();
+  toast(`"${name}" added ✓`);
+}
+
+// ── SUBJECT COLOR PALETTE ──
+const PALETTE = [
+  '#E63946','#457B9D','#F4A261','#2A9D8F','#9B72CF',
+  '#E76F51','#52B788','#F72585','#4CC9F0','#FFB703',
+  '#A8DADC','#E9C46A','#264653','#6D6875','#B5838D'
+];
+
+let subjectRegistry = {
+  'history': PALETTE[0],
+  'physics': PALETTE[1],
+  'biology': PALETTE[2],
+  'literature': PALETTE[3],
+  'math': PALETTE[4],
+};
+
+function getSubjectColor(subj) {
+  const key = subj.toLowerCase().trim();
+  if (!subjectRegistry[key]) {
+    // assign next unused color
+    const used = Object.values(subjectRegistry);
+    const next = PALETTE.find(c => !used.includes(c)) || PALETTE[Object.keys(subjectRegistry).length % PALETTE.length];
+    subjectRegistry[key] = next;
+  }
+  return subjectRegistry[key];
+}
+
+function subjectBadgeStyle(subj) {
+  const color = getSubjectColor(subj.toLowerCase().trim());
+  // convert hex to rgb for transparent bg
+  const r = parseInt(color.slice(1,3),16);
+  const g = parseInt(color.slice(3,5),16);
+  const b = parseInt(color.slice(5,7),16);
+  return `background:rgba(${r},${g},${b},0.15);color:${color};border:1px solid rgba(${r},${g},${b},0.25)`;
+}
+
+// ── SUBJECT DROPDOWN ──
+function openSubjectDropdown() {
+  renderSubjectDropdown('');
+  document.getElementById('subjectDropdown').classList.add('open');
+  renderChips();
+}
+
+function filterSubjectDropdown() {
+  const q = document.getElementById('taskSubject').value.trim();
+  renderSubjectDropdown(q);
+  document.getElementById('subjectDropdown').classList.add('open');
+}
+
+function renderSubjectDropdown(q) {
+  const dd = document.getElementById('subjectDropdown');
+  const ql = q.toLowerCase();
+  const matches = Object.keys(subjectRegistry).filter(s => s.includes(ql));
+
+  let html = matches.map(s => {
+    const color = subjectRegistry[s];
+    return `<div class="subject-dropdown-item" onclick="selectSubject('${s}')">
+      <span class="dot" style="background:${color}"></span>
+      ${cap(s)}
+    </div>`;
+  }).join('');
+
+  if (q && !Object.keys(subjectRegistry).some(s => s === ql)) {
+    html += `<div class="subject-dropdown-item new-tag" onclick="selectSubject('${q}')">
+      <span class="dot" style="background:var(--mint)"></span>
+      + Add "${cap(q)}"
+    </div>`;
+  }
+
+  dd.innerHTML = html || `<div class="subject-dropdown-item" style="color:var(--muted);cursor:default">Type to search or create…</div>`;
+}
+
+function selectSubject(s) {
+  document.getElementById('taskSubject').value = cap(s);
+  document.getElementById('subjectDropdown').classList.remove('open');
+}
+
+function subjectKeydown(e) {
+  if (e.key === 'Escape') document.getElementById('subjectDropdown').classList.remove('open');
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const first = document.querySelector('.subject-dropdown-item');
+    if (first) first.click();
+  }
+}
+
+function renderChips() {
+  const container = document.getElementById('existingSubjectChips');
+  if (!container) return;
+  container.innerHTML = Object.keys(subjectRegistry).map(s => {
+    const color = subjectRegistry[s];
+    const r = parseInt(color.slice(1,3),16);
+    const g = parseInt(color.slice(3,5),16);
+    const b = parseInt(color.slice(5,7),16);
+    return `<div class="existing-subject-chip" 
+      style="background:rgba(${r},${g},${b},0.12);color:${color};border-color:rgba(${r},${g},${b},0.25)"
+      onclick="selectSubject('${s}')">
+      <span class="chip-dot" style="background:${color}"></span>${cap(s)}
+    </div>`;
+  }).join('');
+}
+
+// close dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.subject-input-wrap')) {
+    document.getElementById('subjectDropdown')?.classList.remove('open');
+  }
+});
+const MOCK_DEADLINES = [
+  { name: 'Midterm Exam (Chapter 1–6)', date: '2026-03-08', subject: 'physics', hours: 5 },
+  { name: 'Research Paper Draft Due', date: '2026-03-12', subject: 'literature', hours: 6 },
+  { name: 'Lab Report: Titration', date: '2026-03-15', subject: 'biology', hours: 3 },
+  { name: 'History Essay — WWI Causes', date: '2026-03-20', subject: 'history', hours: 4 },
+  { name: 'Problem Set 7 (Vectors)', date: '2026-03-10', subject: 'math', hours: 2 },
+];
+
+let scannedDeadlines = [];
+
+function handleSyllabusUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('scanAreaText').textContent = `📄 ${file.name}`;
+  document.getElementById('scanLoading').classList.add('show');
+  document.getElementById('scanResults').classList.remove('show');
+  document.getElementById('importBtn').style.display = 'none';
+
+  setTimeout(() => {
+    document.getElementById('scanLoading').classList.remove('show');
+    scannedDeadlines = [...MOCK_DEADLINES].sort(() => Math.random()-0.5).slice(0, 3+Math.floor(Math.random()*3));
+    renderScanResults();
+  }, 2200);
+}
+
+function renderScanResults() {
+  const container = document.getElementById('scanResultsList');
+  container.innerHTML = scannedDeadlines.map((d,i) => `
+    <div class="scan-result-item">
+      <input type="checkbox" id="sr${i}" checked>
+      <label for="sr${i}" class="scan-result-text">${d.name} <span style="color:var(--muted)">(${d.subject})</span></label>
+      <div class="scan-result-date">${d.date}</div>
+    </div>`).join('');
+  document.getElementById('scanResults').classList.add('show');
+  document.getElementById('importBtn').style.display = 'flex';
+}
+
+function importScannedTasks() {
+  let count = 0;
+  scannedDeadlines.forEach((d,i) => {
+    const cb = document.getElementById(`sr${i}`);
+    if (cb && cb.checked) {
+      const due = new Date(`${d.date}T23:59`);
+      const subj = d.subject.toLowerCase();
+      getSubjectColor(subj);
+      tasks.push({ id:nextId++, name:d.name, subject:subj, due, hours:d.hours, notes:'From syllabus scan' });
+      count++;
+    }
+  });
+  tasks.sort((a,b)=>a.due-b.due);
+  closeModal('scanModalOverlay');
+  render();
+  toast(`${count} deadline${count!==1?'s':''} imported from syllabus`);
+}
+
+// ── COLLAB ──
+function copyLink() {
+  navigator.clipboard.writeText('https://sds.app/board/x7k2m9p4q').catch(()=>{});
+  toast('Link copied to clipboard');
+}
+
+// ── POMODORO ──
+let timerInterval = null;
+let timerRunning = false;
+let timerSeconds = 25 * 60;
+let isBreak = false;
+let completedSessions = 0;
+const WORK_TIME = 25 * 60;
+const BREAK_TIME = 5 * 60;
+const CIRC = 2 * Math.PI * 46;
+
+function toggleTimer() {
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timerPlayBtn').textContent = '▶ Resume';
+  } else {
+    timerRunning = true;
+    document.getElementById('timerPlayBtn').textContent = '⏸ Pause';
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerDisplay();
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        if (!isBreak) {
+          completedSessions++;
+          updateSessionDots();
+          isBreak = true;
+          timerSeconds = BREAK_TIME;
+          document.getElementById('timerMode').textContent = 'BREAK';
+          document.getElementById('timerPlayBtn').textContent = '▶ Start Break';
+          document.getElementById('timerRing').style.stroke = '#2A9D8F';
+          toast('🍅 Focus session done! Take a break.');
+        } else {
+          isBreak = false;
+          timerSeconds = WORK_TIME;
+          document.getElementById('timerMode').textContent = 'FOCUS';
+          document.getElementById('timerPlayBtn').textContent = '▶ Start';
+          document.getElementById('timerRing').style.stroke = '#E63946';
+          toast('☕ Break over! Back to focus.');
+        }
+        updateTimerDisplay();
+      }
+    }, 1000);
+  }
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  isBreak = false;
+  timerSeconds = WORK_TIME;
+  document.getElementById('timerPlayBtn').textContent = '▶ Start';
+  document.getElementById('timerMode').textContent = 'FOCUS';
+  document.getElementById('timerRing').style.stroke = '#E63946';
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const total = isBreak ? BREAK_TIME : WORK_TIME;
+  const pct = timerSeconds / total;
+  const offset = CIRC * (1 - pct);
+  document.getElementById('timerRing').style.strokeDashoffset = offset;
+}
+
+function updateSessionDots() {
+  const dots = document.querySelectorAll('.session-dot');
+  dots.forEach((d,i) => { if (i < completedSessions % 4) d.classList.add('done'); else d.classList.remove('done'); });
+}
+
+// Set ring dasharray
+document.getElementById('timerRing').setAttribute('stroke-dasharray', CIRC.toFixed(1));
+
+// ── CALENDAR HEATMAP ──
+function renderCalendar() {
+  const grid = document.getElementById('calGrid');
+  const heat = {};
+  tasks.forEach(t => { const k = t.due.toDateString(); heat[k] = (heat[k]||0)+1; });
+
+  const today = new Date();
+  const year = today.getFullYear(), month = today.getMonth();
+  const firstDay = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
+
+  let html = '';
+  for (let i=0;i<firstDay;i++) html+=`<div class="cal-cell empty"></div>`;
+  for (let d=1;d<=daysInMonth;d++) {
+    const dateObj = new Date(year,month,d);
+    const cnt = heat[dateObj.toDateString()]||0;
+    const isToday = d===today.getDate();
+    let cls = 'cal-cell';
+    if (isToday) cls+=' today';
+    else if (cnt>=3) cls+=' h3';
+    else if (cnt===2) cls+=' h2';
+    else if (cnt===1) cls+=' h1';
+    html+=`<div class="${cls}">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+// ── MODALS ──
+function openAddModal() {
+  document.getElementById('taskDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('taskName').value='';
+  document.getElementById('taskHours').value='';
+  document.getElementById('taskNotes').value='';
+  document.getElementById('taskSubject').value='';
+  renderChips();
+  document.getElementById('addModalOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('taskName').focus(), 100);
+}
+
+function openScanModal() {
+  document.getElementById('scanResults').classList.remove('show');
+  document.getElementById('scanLoading').classList.remove('show');
+  document.getElementById('importBtn').style.display='none';
+  document.getElementById('scanAreaText').textContent='Click to upload your PDF syllabus';
+  document.getElementById('pdfInput').value='';
+  document.getElementById('scanModalOverlay').classList.add('open');
+}
+
+function openCollabModal() { document.getElementById('collabModalOverlay').classList.add('open'); }
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeBg(id) { if (event.target===document.getElementById(id)) closeModal(id); }
+
+// ── TOAST ──
+function toast(msg) {
+  document.getElementById('toastMsg').textContent = msg;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+// ── INIT ──
+render();
+updateTimerDisplay();
+</script>
+</body>
+</html>
